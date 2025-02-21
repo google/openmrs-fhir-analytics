@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Google LLC
+ * Copyright 2020-2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import java.util.Set;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +54,7 @@ public class FhirSearchUtil {
     this.fetchUtil = fetchUtil;
   }
 
+  // TODO update all types to FHIR version independent interfaces!
   public Bundle searchByUrl(String searchUrl, int count, SummaryEnum summaryMode) {
     try {
       IGenericClient client = fetchUtil.getSourceClient();
@@ -323,15 +324,9 @@ public class FhirSearchUtil {
   void testFhirConnection() {
     log.info("Validating FHIR connection");
     IGenericClient client = fetchUtil.getSourceClient();
-    IQuery<Bundle> query =
-        client
-            .search()
-            .forResource(Patient.class)
-            .summaryMode(SummaryEnum.COUNT)
-            .totalMode(SearchTotalModeEnum.ACCURATE)
-            .returnBundle(Bundle.class);
     // The query is executed and checked for any errors during the connection, the result is ignored
-    query.execute();
+    // TODO: A similar metadata check is done internally in the client code; we should avoid one.
+    client.capabilities().ofType(CapabilityStatement.class).execute();
     log.info("Validating FHIR connection successful");
   }
 }
