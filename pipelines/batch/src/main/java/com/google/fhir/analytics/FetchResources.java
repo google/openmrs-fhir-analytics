@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Google LLC
+ * Copyright 2020-2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,20 +68,16 @@ public class FetchResources
     Property subject = resource.getNamedProperty("subject");
     if (subject != null) {
       List<Base> values = subject.getValues();
-      if (values.size() == 1) {
+      if (values.size() == 1 && values.get(0) instanceof Reference) {
         Reference reference = (Reference) values.get(0);
         // TODO: Find a more generic way to check if this is a reference to a Patient. With the
         // current OpenMRS setup, reference.getType() is null so we cannot rely on that.
         String refStr = reference.getReference();
-        Matcher matcher = PATIENT_REFERENCE.matcher(refStr);
-        if (matcher.matches()) {
-          patientId = matcher.group(1);
-        }
-        if (patientId == null) {
-          log.warn(
-              String.format(
-                  "Ignoring subject of %s with id %s because it is not a Patient reference: %s",
-                  resource.getResourceType(), resource.getId(), refStr));
+        if (refStr != null) {
+          Matcher matcher = PATIENT_REFERENCE.matcher(refStr);
+          if (matcher.matches()) {
+            patientId = matcher.group(1);
+          }
         }
       }
       if (values.size() > 1) {
@@ -90,6 +86,9 @@ public class FetchResources
                 "Unexpected multiple values for subject of %s with id %s",
                 resource.getResourceType(), resource.getId()));
       }
+    }
+    if (patientId == null) {
+      log.warn("Ignoring subject of {} with id {}", resource.getResourceType(), resource.getId());
     }
     return patientId;
   }

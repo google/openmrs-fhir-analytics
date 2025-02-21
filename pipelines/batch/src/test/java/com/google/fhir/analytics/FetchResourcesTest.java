@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Google LLC
+ * Copyright 2020-2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
+import org.hamcrest.core.IsNull;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Observation;
 import org.junit.Before;
@@ -84,6 +85,15 @@ public class FetchResourcesTest {
     String patientId = FetchResources.getSubjectPatientIdOrNull(observation);
     assertThat(patientId, notNullValue());
     assertThat(patientId, equalTo(expectedId));
+  }
+
+  @Test
+  public void testGetPatientIdBadSubject() throws IOException {
+    URL url = Resources.getResource("observation_bad_subject.json");
+    String obsStr = Resources.toString(url, StandardCharsets.UTF_8);
+    Observation observation = parser.parseResource(Observation.class, obsStr);
+    String patientId = FetchResources.getSubjectPatientIdOrNull(observation);
+    assertThat(patientId, IsNull.nullValue());
   }
 
   @Test
