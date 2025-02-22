@@ -1,0 +1,254 @@
+#
+# Copyright 2020-2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Default values for fhir-data-pipes.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: google/fhir-data-pipes
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "master"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  extraPorts:
+#    - port: 4040
+#      targetPort: hive-webui
+#      protocol: TCP
+#      name: hive-webui
+#    - port: 10000
+#      targetPort: hive
+#      protocol: TCP
+#      name: hive
+  headless:
+    type: ClusterIP
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: fhir-data-pipes.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  extraRules:
+
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources such as Minikube. If you do want to specify resources uncomment the following
+# lines adjust them as necessary and remove the curly braces after 'resources:'.
+#   limits:
+#     memory: 1024Mi
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+recreatePodsWhenConfigMapChange: true
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+flink:
+  execution.attached: false
+
+hapi:
+  postgres:
+    databaseService: "postgresql"
+    databaseHostName: ""
+    databasePort: "5432"
+    databaseUser: ""
+    databasePassword: ""
+    databaseName: ""
+
+thriftserver:
+  hive:
+    databaseService: "hive2"
+    databaseHostName: "spark-thriftserver"
+    databasePort: "10000"
+    databaseUser: "hive"
+    databasePassword: ""
+    databaseName: "default"
+
+applicationConfig:
+  fhirdata:
+    fhirServerUrl: ""
+    dbConfig: "/app/config/hapi-postgres-config.json"
+    dwhRootPrefix: "/dwh/controller_DWH"
+    thriftserverHiveConfig: "/app/config/thriftserver-hive-config.json"
+    incrementalSchedule: "* * * * * *"
+    resourceList: "Patient,Encounter,Observation"
+    maxWorkers: "10"
+    createHiveResourceTables: "true"
+    hiveJdbcDriver: "org.apache.hive.jdbc.HiveDriver"
+
+# Override the hive-site.xml by specifying the xml as string, see example below (ensure indentation is correct) refer to README.md.
+hiveSiteConfig:
+#  hiveSiteConfig: |
+#    <?xml version="1.0"?>
+#    <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+#
+#    <configuration>
+#      <property>
+#       <name>hive.server2.authentication</name>
+#       <value>LDAP</value>
+#       </property>
+#      <property>
+#        <name>hive.server2.authentication.ldap.url</name>
+#        <value>ldap://openldap.default.svc.cluster.local:389</value>
+#      </property>
+#      <property>
+#        <name>hive.server2.authentication.ldap.baseDN</name>
+#        <value>ou=users,dc=ldapadmin,dc=labs,dc=example,dc=org</value>
+#      </property>
+#    </configuration>
+
+initContainers:
+
+sidecars:
+#  - name: spark-thrift-server
+#    image: docker.io/bitnami/spark:3.3.2-debian-11-r12
+#    imagePullPolicy: IfNotPresent
+#    ports:
+#      - name: hive
+#        containerPort: 10000
+#      - name: hive-webui
+#        containerPort: 4040
+#    args:
+#      - "/bin/sh"
+#      - "-c"
+#      - "sbin/start-thriftserver.sh"
+#      - "--master spark://spark-master-svc:7077"
+#    env:
+#      - name: "HIVE_SERVER2_THRIFT_PORT"
+#        value: "10000"
+#    resources:
+#      limits:
+#        memory: 1024Mi
+#      requests:
+#        cpu: 250m
+#        memory: 256Mi
+#    volumeMounts:
+#      - name: dwh-dir
+#        mountPath: /dwh
+#      - name: hive-site-xml
+#        mountPath: /opt/bitnami/spark/conf/hive-site.xml
+#        subPath: hive-site-xml
+
+extraVolumes:
+#  - name: some-name
+#    configMap:
+#      name: '{{ include "fhir-data-pipes.fullname" . }}'
+
+extraVolumeMounts:
+#  - mountPath: /app/resources/some-file.json
+#    name: some-name
+#    subPath: some-configmap.json
+
+extraConfigMaps:
+#  - name: some-configmap.json
+#    contents: |
+#      {
+#      "entries": [
+#          {
+#          }
+#        ]
+#      }
+
+env:
+#  - name: APP_LOGGING_LEVEL
+#    value: DEBUG
+
+pdb:
+  enabled: false
+  minAvailable: ""
+  maxUnavailable: 1
+
+vpa:
+  enabled: false
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy: {}
+
+pvc:
+  enabled: true
+  volumeMode: Filesystem
+  storageClassName:
+  resources:
+    requests:
+      # update accordingly
+      storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  selector: {}

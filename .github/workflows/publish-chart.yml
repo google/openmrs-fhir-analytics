@@ -1,0 +1,64 @@
+# Kindly refer to https://github.com/helm/chart-releaser-action
+
+name: Publish Charts
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.5.0 # step that writes the latest chart versions (below) depends on this step writing the latest version as the first index in the entries.<name of chart> list in the index.yaml file
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+
+      - name: Install pip requirements
+        uses: BSFishy/pip-action@v1
+        with:
+          packages: |
+            shyaml==0.6.2
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: gh-pages
+
+      - name: Record the latest chart versions
+        run: |
+          releaseDir="latest"
+          if [[ ! -d ${releaseDir} ]]; then
+            mkdir -p ${releaseDir}
+          fi
+          if [[ -f index.yaml ]]; then
+            charts=($(cat index.yaml | shyaml keys entries))
+            for curChart in "${charts[@]}"; do
+              curChartVersion=$(cat index.yaml | shyaml get-value entries.${curChart}.0.version)
+              echo ${curChartVersion} > ${releaseDir}/${curChart}
+            done
+          fi
+
+      - uses: EndBug/add-and-commit@v7
+        with:
+          message: 'Set the latest the chart versions'
+          branch: gh-pages

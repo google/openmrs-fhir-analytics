@@ -1,0 +1,131 @@
+#
+# Copyright 2020-2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "fhir-data-pipes.fullname" . }}
+  labels:
+    {{- include "fhir-data-pipes.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  serviceName: {{ printf "%s-headless" (include "fhir-data-pipes.fullname" .) }}
+  selector:
+    matchLabels:
+      {{- include "fhir-data-pipes.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "fhir-data-pipes.podAnnotations" . | indent 8 }}
+      labels:
+        {{- include "fhir-data-pipes.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fhir-data-pipes.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: application-config-yaml
+          configMap:
+            name: {{ include "fhir-data-pipes.fullname" . }}
+        - name: hapi-postgres-config-json
+          configMap:
+            name: {{ include "fhir-data-pipes.fullname" . }}
+        - name: thriftserver-hive-config-json
+          configMap:
+            name: {{ include "fhir-data-pipes.fullname" . }}
+        - name: flink-conf-yaml
+          configMap:
+            name: {{ include "fhir-data-pipes.fullname" . }}
+        {{- if .Values.hiveSiteConfig }}
+        - name: hive-site-xml
+          configMap:
+            name: {{ include "fhir-data-pipes.fullname" . }}
+        {{- end }}
+        {{- if .Values.pvc.enabled }}
+        - name: dwh-dir
+          persistentVolumeClaim:
+            claimName: {{ include "fhir-data-pipes.fullname" . }}
+        {{- end }}
+        {{- if .Values.extraVolumes }}
+        {{- tpl (toYaml .Values.extraVolumes) . | nindent 12 }}
+        {{- end }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 12 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SPRING_CONFIG_LOCATION
+              value: /app/config/application.yaml
+              {{- if  .Values.env }}
+              {{- tpl (toYaml .Values.env) .  | nindent 12 }}
+              {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: application-config-yaml
+              mountPath: /app/config/application.yaml
+              subPath: application-config-yaml
+            - name: hapi-postgres-config-json
+              mountPath: /app/config/hapi-postgres-config.json
+              subPath: hapi-postgres-config-json
+            - name: thriftserver-hive-config-json
+              mountPath: /app/config/thriftserver-hive-config.json
+              subPath: thriftserver-hive-config-json
+            - name: flink-conf-yaml
+              mountPath: /app/config/flink-conf.yaml
+              subPath: flink-conf-yaml
+              {{- if .Values.pvc.enabled }}
+            - name: dwh-dir
+              mountPath: /dwh
+              {{- end }}
+          {{- if .Values.extraVolumeMounts }}
+          {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.sidecars }}
+        {{- toYaml .Values.sidecars | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
