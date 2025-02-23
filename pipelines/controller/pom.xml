@@ -88,11 +88,12 @@
 
     <!-- This is to make it easier to hot-swap static content, i.e., to make
      testing static content changes in a running server easier. -->
-    <dependency>
+
+    <!-- dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
       <optional>true</optional>
-    </dependency>
+    </dependency -->
 
     <!-- Pipeline dependencies for execution and monitoring -->
     <dependency>
