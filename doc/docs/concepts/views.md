@@ -36,20 +36,18 @@ for common FHIR resources are provided. These can be modified or extended.
 
 The currently supported list (as of July, 2024) are:
 
-```
-Condition
-DiagnosticReport
-Encounter
-Immunization
-Location
-Medicationrequest
-Observation
-Organization
-Patient
-Practitioner
-PractitionerRole
-Procedure
-```
+- Condition
+- DiagnosticReport
+- Encounter
+- Immunization
+- Location
+- Medicationrequest
+- Observation
+- Organization
+- Patient
+- Practitioner
+- PractitionerRole
+- Procedure
 
 ### SQL virtual views
 
@@ -213,3 +211,31 @@ is set.
 The resulting Parquet files can be easily loaded into any Parquet-aware query
 engine. Examples include [SparkSQL](https://spark.apache.org/sql/)
 or [duckdb](https://duckdb.org/)
+
+## Mapping ViewDefinitions to a Relational Database
+
+### Introduction
+
+ViewDefinitions allow you to define custom schemas for FHIR resources, which can then be materialized into relational database tables. This feature is useful for transforming nested FHIR data into flat, queryable tables.
+
+### Configuration
+
+To map ViewDefinitions to a relational database, you need to configure the pipeline appropriately.
+
+1. **Set the `viewDefinitionsDir`**: This directory should contain the JSON files defining your ViewDefinitions.
+2. **Set the `sinkDbConfigPath`**: This configuration file should contain the database connection details.
+
+Example configuration in `pipelines/controller/config/application.yaml`:
+```yaml
+# The location from which ViewDefinition resources are read and applied to the
+# corresponding input FHIR resources. Any file in this directory that ends
+# `.json` is assumed to be a single ViewDefinition. To output these views to a
+# relational database, the next sinkDbConfigPath should also be set.
+viewDefinitionsDir: "config/views"
+
+# The configuration file for the sink database. If `viewDefinitionsDir` is set
+# then the generated views are materialized and written to this DB. If not,
+# then the raw FHIR JSON resources are written to this DB. Note enabling this
+# feature can have a noticeable impact on pipelines performance. The default
+# empty string disables this feature.
+sinkDbConfigPath: "config/hapi-postgres-config_local_views.json"
