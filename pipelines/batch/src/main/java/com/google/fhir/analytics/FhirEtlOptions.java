@@ -15,6 +15,7 @@
  */
 package com.google.fhir.analytics;
 
+import com.google.fhir.analytics.enumeration.ClientCredentialsAuthMechanism;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.Validation.Required;
@@ -83,6 +84,12 @@ public interface FhirEtlOptions extends BasePipelineOptions {
   String getFhirServerOAuthTokenEndpoint();
 
   void setFhirServerOAuthTokenEndpoint(String value);
+
+  @Description("The mechanism for authenticating a client in the Client Credentials flow.")
+  @Default.Enum("BASIC")
+  ClientCredentialsAuthMechanism getFhirServerOAuthMechanism();
+
+  void setFhirServerOAuthMechanism(ClientCredentialsAuthMechanism value);
 
   @Description(
       "The `client_id` to be used in the OAuth Client Credential flow when interacting with the "

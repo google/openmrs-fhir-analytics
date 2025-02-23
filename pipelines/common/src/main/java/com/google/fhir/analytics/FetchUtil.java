@@ -31,6 +31,7 @@ import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IOperationUntyped;
 import ca.uhn.fhir.rest.gclient.IOperationUntypedWithInput;
 import com.google.api.client.auth.oauth2.ClientCredentialsTokenRequest;
+import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
@@ -38,6 +39,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.fhir.analytics.enumeration.ClientCredentialsAuthMechanism;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -61,6 +63,8 @@ public class FetchUtil {
 
   private final String oAuthTokenEndpoint;
 
+  private final ClientCredentialsAuthMechanism oAuthMechanism;
+
   private final String oAuthClientId;
 
   private final String oAuthClientSecret;
@@ -74,6 +78,7 @@ public class FetchUtil {
       String sourceUser,
       String sourcePw,
       String oAuthTokenEndpoint,
+      ClientCredentialsAuthMechanism oAuthMechanism,
       String oAuthClientId,
       String oAuthClientSecret,
       FhirContext fhirContext) {
@@ -81,6 +86,7 @@ public class FetchUtil {
     this.sourceUser = Strings.nullToEmpty(sourceUser);
     this.sourcePw = Strings.nullToEmpty(sourcePw);
     this.oAuthTokenEndpoint = Strings.nullToEmpty(oAuthTokenEndpoint);
+    this.oAuthMechanism = oAuthMechanism;
     this.oAuthClientId = Strings.nullToEmpty(oAuthClientId);
     this.oAuthClientSecret = Strings.nullToEmpty(oAuthClientSecret);
     this.fhirContext = fhirContext;
@@ -93,7 +99,7 @@ public class FetchUtil {
       log.info("Fetching access tokens from {}", oAuthTokenEndpoint);
       authInterceptor =
           new ClientCredentialsAuthInterceptor(
-              oAuthTokenEndpoint, oAuthClientId, oAuthClientSecret);
+              oAuthTokenEndpoint, oAuthMechanism, oAuthClientId, oAuthClientSecret);
     } else if (!this.sourceUser.isEmpty()) {
       authInterceptor = new BasicAuthInterceptor(this.sourceUser, sourcePw);
     } else {
@@ -252,16 +258,23 @@ public class FetchUtil {
     private static final int TOKEN_REFRESH_LEEWAY_IN_SECONDS = 10;
 
     private final String tokenEndpoint;
+    private final ClientCredentialsAuthMechanism oAuthMechanism;
     private final String clientId;
     private final String clientSecret;
     private TokenResponse tokenResponse;
     private Instant nextRefresh;
 
-    ClientCredentialsAuthInterceptor(String tokenEndpoint, String clientId, String clientSecret) {
+    ClientCredentialsAuthInterceptor(
+        String tokenEndpoint,
+        ClientCredentialsAuthMechanism oAuthMechanism,
+        String clientId,
+        String clientSecret) {
       Preconditions.checkNotNull(tokenEndpoint);
+      Preconditions.checkNotNull(clientSecret);
       Preconditions.checkNotNull(clientId);
       Preconditions.checkNotNull(clientSecret);
       this.tokenEndpoint = tokenEndpoint;
+      this.oAuthMechanism = oAuthMechanism;
       this.clientId = clientId;
       this.clientSecret = clientSecret;
     }
@@ -291,12 +304,24 @@ public class FetchUtil {
     }
 
     TokenResponse requestAccessToken() throws IOException {
-      TokenResponse response =
+      ClientCredentialsTokenRequest clientCredentialsTokenRequest =
           new ClientCredentialsTokenRequest(
-                  new NetHttpTransport(), new GsonFactory(), new GenericUrl(tokenEndpoint))
-              .setClientAuthentication(new BasicAuthentication(clientId, clientSecret))
-              .execute();
-      return response;
+              new NetHttpTransport(), new GsonFactory(), new GenericUrl(tokenEndpoint));
+      switch (oAuthMechanism) {
+        case BASIC:
+          clientCredentialsTokenRequest =
+              clientCredentialsTokenRequest.setClientAuthentication(
+                  new BasicAuthentication(clientId, clientSecret));
+          break;
+        case BODY:
+          clientCredentialsTokenRequest =
+              clientCredentialsTokenRequest.setClientAuthentication(
+                  new ClientParametersAuthentication(clientId, clientSecret));
+          break;
+        case JWT:
+          break;
+      }
+      return clientCredentialsTokenRequest.execute();
     }
   }
 }
