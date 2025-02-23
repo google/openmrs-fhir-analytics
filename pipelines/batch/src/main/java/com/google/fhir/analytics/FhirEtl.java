@@ -46,16 +46,19 @@ import org.apache.beam.sdk.coders.CannotProvideCoderException;
 import org.apache.beam.sdk.io.FileIO;
 import org.apache.beam.sdk.io.FileIO.ReadableFile;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
+import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.Sum;
+import org.apache.beam.sdk.transforms.Values;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PCollectionList;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -285,6 +288,17 @@ public class FhirEtl {
               && !Strings.isNullOrEmpty(options.getFhirServerUrl()),
           "--fhirDatabaseConfigPath and -fhirServerUrl cannot be empty for OPENMRS_JDBC fetch"
               + " mode");
+      case TOPIC_LISTENER -> {
+        Preconditions.checkState(
+            !Strings.isNullOrEmpty(options.getKafkaBootstrapServers()),
+            "--kafkaBootstrapServers cannot be empty for TOPIC_LISTENER fetch mode");
+        Preconditions.checkState(
+            !Strings.isNullOrEmpty(options.getKafkaTopic()),
+            "--kafkaTopic cannot be empty for TOPIC_LISTENER fetch mode");
+        Preconditions.checkState(
+            !Strings.isNullOrEmpty(options.getKafkaConsumerGroup()),
+            "--kafkaConsumerGroup cannot be empty for TOPIC_LISTENER fetch mode");
+      }
     }
     if (!options.getActivePeriod().isEmpty()) {
       Set<String> resourceSet = Sets.newHashSet(options.getResourceList().split(","));
@@ -476,6 +490,36 @@ public class FhirEtl {
     return Maps.newHashMap();
   }
 
+  private static List<Pipeline> buildTopicListenerPipeline(
+      FhirEtlOptions options, AvroConversionUtil avroConversionUtil) {
+
+    Pipeline pipeline = Pipeline.create(options);
+
+    // Read from Kafka topic
+    PCollection<String> messages =
+        pipeline
+            .apply(
+                "Read From Kafka",
+                KafkaIO.<String, String>read()
+                    .withBootstrapServers(options.getKafkaBootstrapServers())
+                    .withTopic(options.getKafkaTopic())
+                    .withConsumerConfigUpdates(
+                        Map.of(
+                            "group.id",
+                            options.getKafkaConsumerGroup(),
+                            "auto.offset.reset",
+                            "earliest"))
+                    .withKeyDeserializer(StringDeserializer.class)
+                    .withValueDeserializer(StringDeserializer.class)
+                    .withoutMetadata())
+            .apply("Extract Values", Values.create());
+
+    // Process the messages
+    messages.apply("Process FHIR Bundles", ParDo.of(new ProcessFhirBundleFn(options)));
+
+    return Arrays.asList(pipeline);
+  }
+
   /**
    * Pipeline builder for fetching resources from a FHIR server. The mode of the pipeline is decided
    * based on the given `options`. There are currently four modes in this priority order:
@@ -510,6 +554,7 @@ public class FhirEtl {
       case NDJSON -> buildMultiJsonReadPipeline(options, true);
       case FHIR_SEARCH -> buildFhirSearchPipeline(options, avroConversionUtil);
       case BULK_EXPORT -> buildBulkExportReadPipeline(options, avroConversionUtil);
+      case TOPIC_LISTENER -> buildTopicListenerPipeline(options, avroConversionUtil);
     };
   }
 

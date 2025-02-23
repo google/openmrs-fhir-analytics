@@ -155,6 +155,20 @@
       <artifactId>${flink.artifact.name}</artifactId>
       <version>${beam.version}</version>
     </dependency>
+
+    <!-- Apache Beam Kafka IO -->
+    <dependency>
+        <groupId>org.apache.beam</groupId>
+        <artifactId>beam-sdks-java-io-kafka</artifactId>
+        <version>${beam.version}</version>
+    </dependency>
+
+    <!-- Kafka Client -->
+    <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>3.6.1</version> <!-- Use appropriate version -->
+    </dependency>
   </dependencies>
 
   <build>

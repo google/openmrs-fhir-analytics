@@ -273,4 +273,22 @@ public interface FhirEtlOptions extends BasePipelineOptions {
   void setGenerateParquetFiles(Boolean value);
 
   void setSourceNdjsonFilePatternList(String value);
+
+  @Description("Kafka bootstrap servers (comma-separated list)")
+  @Default.String("")
+  String getKafkaBootstrapServers();
+
+  void setKafkaBootstrapServers(String value);
+
+  @Description("Kafka topic name to listen for FHIR resources")
+  @Default.String("")
+  String getKafkaTopic();
+
+  void setKafkaTopic(String value);
+
+  @Description("Kafka consumer group ID")
+  @Default.String("")
+  String getKafkaConsumerGroup();
+
+  void setKafkaConsumerGroup(String value);
 }

@@ -20,11 +20,12 @@ package com.google.fhir.analytics;
  * from the source.
  */
 public enum FhirFetchMode {
-  BULK_EXPORT,
   FHIR_SEARCH,
-  HAPI_JDBC,
-  OPENMRS_JDBC,
   PARQUET,
   JSON,
-  NDJSON
+  NDJSON,
+  BULK_EXPORT,
+  HAPI_JDBC,
+  OPENMRS_JDBC,
+  TOPIC_LISTENER
 }

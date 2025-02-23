@@ -1,0 +1,12 @@
+FROM eclipse-temurin:17-jdk-focal
+
+ARG WORK_DIR="/usr/src/Main"
+COPY target/batch-bundled.jar ${WORK_DIR}/app.jar
+WORKDIR ${WORK_DIR}
+
+ENTRYPOINT java -jar /usr/src/Main/app.jar  \
+    --fhirFetchMode=TOPIC_LISTENER \
+    --kafkaBootstrapServers=kafka-01:9092 \
+    --kafkaTopic=2xx \
+    --kafkaConsumerGroup=fhir-processor \
+    --outputParquetPath=/tmp/fhir-data/
