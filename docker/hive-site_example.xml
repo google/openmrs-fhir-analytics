@@ -17,7 +17,8 @@ https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties#Config
     <!-- This setup assumes that custom_metastore_db is already created. -->
     <!-- The IP address should be adjusted based on how the thriftserver sees
       the external DB; this example is for a docker image on Linux. -->
-    <value>jdbc:postgresql://172.18.0.1:5432/custom_metastore_db</value>
+    <!-- value>jdbc:postgresql://172.18.0.1:5432/custom_metastore_db</value -->
+    <value>jdbc:postgresql://postgres:5432/custom_metastore_db</value>
     <!-- value>jdbc:postgresql://localhost:5432/custom_metastore_db</value -->
   </property>
   <property>
