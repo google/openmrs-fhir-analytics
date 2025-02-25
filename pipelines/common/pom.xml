@@ -62,7 +62,7 @@
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-healthcare</artifactId>
-      <version>v1-rev20241226-2.0.0</version>
+      <version>v1-rev20250206-2.0.0</version>
     </dependency>
 
     <dependency>
