@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Google LLC
+ * Copyright 2020-2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,44 +16,24 @@
 package com.google.fhir.analytics;
 
 import io.debezium.data.Envelope.Operation;
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.camel.component.debezium.DebeziumConstants;
 
 public class DebeziumTestUtil {
 
   static Map<String, String> genExpectedBody() {
-    return new HashMap<String, String>() {
-
-      {
-        put("uuid", "encounter_uuid");
-      }
-    };
+    return Map.of("uuid", "encounter_uuid");
   }
 
   static Map<String, String> genExpectedBodyWithoutUUid() {
-    return new HashMap<String, String>() {
-
-      {
-        put("patient_id", "1");
-      }
-    };
+    return Map.of("patient_id", "1");
   }
 
   static Map<String, Object> genExpectedHeaders(final Operation operation, final String tableName) {
-    return new HashMap<String, Object>() {
-
-      {
-        put(DebeziumConstants.HEADER_OPERATION, operation.code());
-        put(
-            DebeziumConstants.HEADER_SOURCE_METADATA,
-            new HashMap<String, Object>() {
-
-              {
-                put("table", tableName);
-              }
-            });
-      }
-    };
+    return Map.of(
+        DebeziumConstants.HEADER_OPERATION,
+        operation.code(),
+        DebeziumConstants.HEADER_SOURCE_METADATA,
+        Map.of("table", tableName));
   }
 }

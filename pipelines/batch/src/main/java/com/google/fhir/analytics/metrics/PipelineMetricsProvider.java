@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Google LLC
+ * Copyright 2020-2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 package com.google.fhir.analytics.metrics;
 
-import javax.annotation.Nullable;
 import org.apache.beam.sdk.PipelineRunner;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +41,7 @@ public class PipelineMetricsProvider {
       return flinkPipelineMetrics;
     } else {
       logger.warn(
-          "Metrics is not supported for the pipeline runner {}",
-          pipelineRunner.getClass().getSimpleName());
+          "Metrics is not supported for the pipeline runner {}", pipelineRunner.getSimpleName());
       return null;
     }
   }

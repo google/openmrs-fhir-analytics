@@ -45,6 +45,7 @@ import java.util.Map;
 import org.hl7.fhir.instance.model.api.IBaseParameters;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Resource;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +58,6 @@ public class FetchUtil {
 
   private final String sourceUser;
 
-  private final String sourcePw;
-
   private final String oAuthTokenEndpoint;
 
   private final String oAuthClientId;
@@ -67,7 +66,7 @@ public class FetchUtil {
 
   private final FhirContext fhirContext;
 
-  private final IClientInterceptor authInterceptor;
+  @Nullable private final IClientInterceptor authInterceptor;
 
   FetchUtil(
       String sourceFhirUrl,
@@ -79,7 +78,6 @@ public class FetchUtil {
       FhirContext fhirContext) {
     this.fhirUrl = sourceFhirUrl;
     this.sourceUser = Strings.nullToEmpty(sourceUser);
-    this.sourcePw = Strings.nullToEmpty(sourcePw);
     this.oAuthTokenEndpoint = Strings.nullToEmpty(oAuthTokenEndpoint);
     this.oAuthClientId = Strings.nullToEmpty(oAuthClientId);
     this.oAuthClientSecret = Strings.nullToEmpty(oAuthClientSecret);
@@ -101,6 +99,7 @@ public class FetchUtil {
     }
   }
 
+  @Nullable
   public Resource fetchFhirResource(String resourceType, String resourceId) {
     try {
       // Create client
@@ -116,8 +115,10 @@ public class FetchUtil {
     }
   }
 
+  @Nullable
   public Resource fetchFhirResource(String resourceUrl) {
     // Parse resourceUrl
+    // TODO: replace `split` with safer options: https://errorprone.info/bugpattern/StringSplitter
     String[] sepUrl = resourceUrl.split("/");
     String resourceId = sepUrl[sepUrl.length - 1];
     String resourceType = sepUrl[sepUrl.length - 2];
@@ -254,8 +255,8 @@ public class FetchUtil {
     private final String tokenEndpoint;
     private final String clientId;
     private final String clientSecret;
-    private TokenResponse tokenResponse;
-    private Instant nextRefresh;
+    @Nullable private TokenResponse tokenResponse;
+    @Nullable private Instant nextRefresh;
 
     ClientCredentialsAuthInterceptor(String tokenEndpoint, String clientId, String clientSecret) {
       Preconditions.checkNotNull(tokenEndpoint);
@@ -268,7 +269,7 @@ public class FetchUtil {
 
     @Override
     public synchronized String getToken() {
-      if (nextRefresh == null || Instant.now().isAfter(nextRefresh)) {
+      if (tokenResponse == null || nextRefresh == null || Instant.now().isAfter(nextRefresh)) {
         try {
           log.debug("Fetching a new OAuth token; old refresh: {}", nextRefresh);
           tokenResponse = requestAccessToken();
@@ -290,7 +291,7 @@ public class FetchUtil {
       theRequest.addHeader("Authorization", "Bearer " + getToken());
     }
 
-    TokenResponse requestAccessToken() throws IOException {
+    private TokenResponse requestAccessToken() throws IOException {
       TokenResponse response =
           new ClientCredentialsTokenRequest(
                   new NetHttpTransport(), new GsonFactory(), new GenericUrl(tokenEndpoint))

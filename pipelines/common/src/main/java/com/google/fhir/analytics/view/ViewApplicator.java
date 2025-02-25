@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.Getter;
 import org.hl7.fhir.dstu3.hapi.fluentpath.FhirPathDstu3;
@@ -52,6 +51,7 @@ import org.hl7.fhir.instance.model.api.IPrimitiveType;
 import org.hl7.fhir.r4.hapi.fluentpath.FhirPathR4;
 import org.hl7.fhir.r4b.hapi.fhirpath.FhirPathR4B;
 import org.hl7.fhir.r5.hapi.fhirpath.FhirPathR5;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

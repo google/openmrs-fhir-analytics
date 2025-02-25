@@ -40,7 +40,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import javax.annotation.Nullable;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.io.fs.ResolveOptions.StandardResolveOptions;
 import org.apache.beam.sdk.io.fs.ResourceId;
@@ -50,6 +49,7 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Resource;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,15 +65,15 @@ public class ParquetUtil {
   private final Map<String, WriterWithCache> viewWriterMap;
   private final Map<String, WriterWithCache> writerMap;
 
-  private final int rowGroupSize;
+  private final long rowGroupSize;
   private final boolean cacheBundle;
   private final DwhFiles dwhFiles;
-  private final Timer timer;
+  @Nullable private final Timer timer;
   private final Random random;
   private final String namePrefix;
   private boolean flushedInCurrentPeriod;
 
-  private ViewManager viewManager;
+  @Nullable private ViewManager viewManager;
 
   private final boolean createParquetViews;
 
@@ -152,16 +152,16 @@ public class ParquetUtil {
                 // into Parquet files _at least_ once in every `secondsToFlush`.
                 if (!flushedInCurrentPeriod) {
                   log.info("Flush timed out for thread " + Thread.currentThread().getId());
-                  flushAll();
+                  flushAllWriters();
                 }
                 setFlushedInCurrentPeriod(false);
-              } catch (IOException | ProfileException e) {
+              } catch (IOException e) {
                 log.error("Could not flush Parquet files: " + e);
               }
             }
           };
       this.timer = new Timer();
-      timer.scheduleAtFixedRate(task, secondsToFlush * 1000, secondsToFlush * 1000);
+      timer.scheduleAtFixedRate(task, secondsToFlush * 1000L, secondsToFlush * 1000L);
     } else {
       timer = null;
     }
@@ -198,11 +198,15 @@ public class ParquetUtil {
     return resourceId.resolve(uniqueFileName, StandardResolveOptions.RESOLVE_FILE);
   }
 
-  private synchronized void createWriter(String resourceType, @Nullable ViewDefinition vDef)
-      throws IOException, ProfileException {
-    boolean noView = vDef == null;
+  /**
+   * Creates a writer for the given `resourceType` or `vDef`, puts it in the `writerMap` and returns
+   * it. If `vDef` is null, `resourceType` is expected to be a valid FHIR resource type name. If
+   * `vDef` is not null, `resourceType` is ignored.
+   */
+  private synchronized WriterWithCache createWriter(
+      String resourceType, @Nullable ViewDefinition vDef) throws IOException, ProfileException {
     ResourceId resourceId =
-        noView
+        vDef == null
             ? getUniqueOutputFilePath(resourceType)
             : getUniqueOutputFilePathView(vDef.getName());
 
@@ -217,13 +221,17 @@ public class ParquetUtil {
       builder.withRowGroupSize(rowGroupSize);
     }
     ParquetWriter<GenericRecord> writer;
-    if (noView) {
+    WriterWithCache writerWithCache;
+    if (vDef == null) {
       writer = builder.withSchema(conversionUtil.getResourceSchema(resourceType)).build();
-      writerMap.put(resourceType, new WriterWithCache(writer, this.cacheBundle));
+      writerWithCache = new WriterWithCache(writer, this.cacheBundle);
+      writerMap.put(resourceType, writerWithCache);
     } else {
       writer = builder.withSchema(ViewSchema.getAvroSchema(vDef)).build();
-      viewWriterMap.put(vDef.getName(), new WriterWithCache(writer, this.cacheBundle));
+      writerWithCache = new WriterWithCache(writer, this.cacheBundle);
+      viewWriterMap.put(vDef.getName(), writerWithCache);
     }
+    return writerWithCache;
   }
 
   /**
@@ -236,30 +244,22 @@ public class ParquetUtil {
       throws IOException, ProfileException, ViewApplicationException {
     Preconditions.checkNotNull(resource.fhirType());
     String resourceType = resource.fhirType();
-    if (!writerMap.containsKey(resourceType)) {
-      createWriter(resourceType, null);
+    WriterWithCache writer = writerMap.get(resourceType);
+    if (writer == null) {
+      writer = createWriter(resourceType, null);
     }
-    final WriterWithCache writer = writerMap.get(resourceType);
     GenericRecord record = conversionUtil.convertToAvro(resource);
     if (record != null) {
       writer.write(record);
     }
     if (createParquetViews) {
+      Preconditions.checkNotNull(viewManager);
       ImmutableList<ViewDefinition> views = viewManager.getViewsForType(resource.fhirType());
       if (views != null) {
         for (ViewDefinition vDef : views) {
           write(resource, vDef);
         }
       }
-    }
-  }
-
-  public synchronized void emptyCache() throws IOException {
-    for (WriterWithCache writer : writerMap.values()) {
-      writer.flushCache();
-    }
-    for (WriterWithCache writer : viewWriterMap.values()) {
-      writer.flushCache();
     }
   }
 
@@ -271,10 +271,10 @@ public class ParquetUtil {
   private synchronized void write(Resource resource, ViewDefinition vDef)
       throws IOException, ProfileException, ViewApplicationException {
     Preconditions.checkNotNull(resource.fhirType());
-    if (!viewWriterMap.containsKey(vDef.getName())) {
-      createWriter("", vDef);
+    WriterWithCache parquetWriter = viewWriterMap.get(vDef.getName());
+    if (parquetWriter == null) {
+      parquetWriter = createWriter("", vDef);
     }
-    final WriterWithCache parquetWriter = viewWriterMap.get(vDef.getName());
     ViewApplicator applicator = new ViewApplicator(vDef);
     RowList rows = applicator.apply(resource);
     List<GenericRecord> result = ViewSchema.setValueInRecord(rows, vDef);
@@ -283,25 +283,23 @@ public class ParquetUtil {
     }
   }
 
-  private synchronized void flush(String resourceType) throws IOException, ProfileException {
+  private synchronized void flush(String resourceType) throws IOException {
     WriterWithCache writer = writerMap.get(resourceType);
     if (writer != null && writer.getDataSize() > 0) {
       writer.close();
-      createWriter(resourceType, null);
+      writerMap.put(resourceType, null);
     }
   }
 
-  private synchronized void flushViewWriter(String viewName) throws IOException, ProfileException {
+  private synchronized void flushViewWriter(String viewName) throws IOException {
     WriterWithCache writer = viewWriterMap.get(viewName);
     if (writer != null && writer.getDataSize() > 0) {
       writer.close();
-      // TODO: We need to investigate why we need to create the writer here. If we change this logic
-      // to remove the writer at this line, E2E Streaming Tests fail in CloudBuild.
-      createWriter(viewName, this.viewManager.getViewDefinition(viewName));
+      writerMap.put(viewName, null);
     }
   }
 
-  synchronized void flushAll() throws IOException, ProfileException {
+  synchronized void flushAllWriters() throws IOException {
     log.info("Flushing all Parquet writers for thread " + Thread.currentThread().getId());
     for (String viewName : viewWriterMap.keySet()) {
       flushViewWriter(viewName);
@@ -312,21 +310,14 @@ public class ParquetUtil {
     setFlushedInCurrentPeriod(true);
   }
 
-  public synchronized void closeAllWriters() throws IOException {
+  public synchronized void flushAllWritersAndStopTimer() throws IOException {
     if (timer != null) {
       timer.cancel();
     }
-    for (Map.Entry<String, WriterWithCache> entry : viewWriterMap.entrySet()) {
-      entry.getValue().close();
-      viewWriterMap.put(entry.getKey(), null);
-    }
-    for (Map.Entry<String, WriterWithCache> entry : writerMap.entrySet()) {
-      entry.getValue().close();
-      writerMap.put(entry.getKey(), null);
-    }
+    flushAllWriters();
   }
 
-  public void writeRecords(Bundle bundle, Set<String> resourceTypes)
+  public void writeRecords(Bundle bundle, @Nullable Set<String> resourceTypes)
       throws IOException, ProfileException, ViewApplicationException {
     if (bundle.getEntry() == null) {
       return;
@@ -351,7 +342,7 @@ public class ParquetUtil {
       this.useCache = useCache;
     }
 
-    void flushCache() throws IOException {
+    private void flushCache() throws IOException {
       if (useCache && !cache.isEmpty()) {
         log.info("Parquet cache size= {}", cache.size());
         for (GenericRecord record : cache) {

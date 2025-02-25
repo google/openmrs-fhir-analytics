@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Google LLC
+ * Copyright 2020-2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import java.util.Collections;
 import org.apache.http.client.utils.URIBuilder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +54,16 @@ class GcpStoreUtil extends FhirStoreUtil {
 
   private static final Logger log = LoggerFactory.getLogger(GcpStoreUtil.class);
 
-  private GoogleCredentials credential = null;
+  // TODO replace this with local variables returned by `createClient()`; this does not need
+  //  to be an instance variable.
+  @Nullable private GoogleCredentials credential = null;
 
   protected GcpStoreUtil(String sinkUrl, IRestfulClientFactory clientFactory) {
     super(sinkUrl, "", "", clientFactory);
   }
 
   @Override
+  @Nullable
   public MethodOutcome uploadResource(Resource resource) {
     try {
       updateFhirResource(sinkUrl, resource);
@@ -91,6 +95,7 @@ class GcpStoreUtil extends FhirStoreUtil {
     return null;
   }
 
+  @Nullable
   protected MethodOutcome updateFhirResource(String fhirStoreName, Resource resource) {
     try {
       // Initialize the client, which will be used to interact with the service.

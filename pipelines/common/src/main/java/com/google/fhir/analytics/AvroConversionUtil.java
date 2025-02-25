@@ -27,7 +27,6 @@ import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -37,6 +36,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Resource;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +50,7 @@ public class AvroConversionUtil {
   private static final Logger log = LoggerFactory.getLogger(AvroConversionUtil.class);
 
   // This is the singleton instance.
-  private static AvroConversionUtil instance;
+  @Nullable private static AvroConversionUtil instance;
 
   private final Map<String, AvroConverter> converterMap;
 
@@ -60,7 +60,7 @@ public class AvroConversionUtil {
 
   private final FhirVersionEnum fhirVersionEnum;
 
-  private final String structureDefinitionsPath;
+  @Nullable private final String structureDefinitionsPath;
 
   private final int recursiveDepth;
 
@@ -152,8 +152,7 @@ public class AvroConversionUtil {
   }
 
   @VisibleForTesting
-  @Nullable
-  GenericRecord convertToAvro(Resource resource) throws ProfileException {
+  @Nullable GenericRecord convertToAvro(Resource resource) throws ProfileException {
     AvroConverter converter = getConverter(resource.getResourceType().name());
     // TODO: Check why Bunsen returns IndexedRecord instead of GenericRecord.
     return (GenericRecord) converter.resourceToAvro(resource);

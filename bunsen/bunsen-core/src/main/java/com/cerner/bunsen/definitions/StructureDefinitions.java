@@ -323,7 +323,7 @@ public abstract class StructureDefinitions {
           //  we don't reset the stack, then we should handle null returns.
           T child = transform(visitor, element, structureDefinition, new ArrayDeque<>());
           Verify.verify(
-              child != null, "Unexpected null choice type {} for element {}", typeCode, element);
+              child != null, "Unexpected null choice type %s for element %s", typeCode, element);
           choiceTypes.put(typeCode, child);
         }
       }

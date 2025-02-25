@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Google LLC
+ * Copyright 2020-2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@ package com.google.fhir.analytics;
 import com.google.auto.value.AutoValue;
 import java.io.Serializable;
 import java.util.List;
-import javax.annotation.Nullable;
 import lombok.Data;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.coders.SerializableCoder;
+import org.jspecify.annotations.Nullable;
 
 @DefaultCoder(SerializableCoder.class)
 @AutoValue

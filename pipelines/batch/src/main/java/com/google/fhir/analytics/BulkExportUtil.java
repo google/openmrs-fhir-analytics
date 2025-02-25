@@ -21,9 +21,9 @@ import com.google.fhir.analytics.model.BulkExportHttpResponse;
 import com.google.fhir.analytics.model.BulkExportResponse;
 import java.io.IOException;
 import java.util.List;
-import javax.annotation.Nullable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.HttpStatus;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

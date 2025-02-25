@@ -130,3 +130,18 @@ To regenerate this jar file:
 
     NOTE: Parquet tools will be replaced with parquet cli in the next release
     `apache-parquet-1.12.0`
+
+## Error Prone and NullAway
+We use [Error Prone](https://errorprone.info/index) and
+[NullAway](https://github.com/uber/NullAway) to catch common issues at build
+time, in particular `NullPointerException`s. These are enabled in
+[pom.xml](../pipelines/pom.xml) according to
+[installation instructions](https://errorprone.info/docs/installation#maven).
+An unfortunate side effect of this is that we need manually add all annotation
+processors that we care about as discussed
+[here](https://errorprone.info/docs/installation#using-error-prone-together-with-other-annotation-processors).
+
+Currently, these errors only appear as WARNING and are not blockers but please
+take a look at the new ones caused by your changes and fix them as we are trying
+to address all of these, gradually. You can enable Error Prone in your IDE too,
+see [here](https://errorprone.info/docs/installation#intellij-idea).

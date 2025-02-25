@@ -173,7 +173,7 @@ public class DebeziumListener extends RouteBuilder {
     @Override
     public void stop() {
       try {
-        parquetUtil.closeAllWriters();
+        parquetUtil.flushAllWritersAndStopTimer();
       } catch (IOException e) {
         log.error("Could not close Parquet file writers properly!");
       }

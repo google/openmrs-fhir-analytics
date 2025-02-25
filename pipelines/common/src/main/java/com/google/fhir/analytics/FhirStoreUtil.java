@@ -36,6 +36,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Resource;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +82,7 @@ public class FhirStoreUtil {
     }
   }
 
+  @Nullable
   public MethodOutcome uploadResource(Resource resource) {
     Collection<IClientInterceptor> interceptors = Collections.<IClientInterceptor>emptyList();
 
@@ -193,7 +196,7 @@ public class FhirStoreUtil {
   }
 
   protected MethodOutcome updateFhirResource(
-      String sinkUrl, Resource resource, Collection<IClientInterceptor> interceptors) {
+      String sinkUrl, @NonNull Resource resource, Collection<IClientInterceptor> interceptors) {
     IGenericClient client = createGenericClient(sinkUrl, interceptors);
 
     removeSubsettedTag(resource.getMeta());
