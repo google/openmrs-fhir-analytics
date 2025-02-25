@@ -25,7 +25,7 @@
 
   <properties>
     <compile.source>11</compile.source>
-    <hapi.fhir.version>7.6.1</hapi.fhir.version>
+    <hapi.fhir.version>8.0.0</hapi.fhir.version>
     <avro.version>1.12.0</avro.version>
     <junit.version>4.13.2</junit.version>
     <hamcrest.version>3.0</hamcrest.version>
