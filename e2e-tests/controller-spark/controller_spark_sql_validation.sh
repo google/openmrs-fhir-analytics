@@ -230,7 +230,7 @@ function check_parquet() {
     # In case of incremental run, we will have two directories
     # assuming batch run was executed before this.
     TOTAL_TEST_PATIENTS=$((2*TOTAL_TEST_PATIENTS + 1))
-    TOTAL_VIEW_PATIENTS=108
+    TOTAL_VIEW_PATIENTS=213
     TOTAL_TEST_ENCOUNTERS=$((2*TOTAL_TEST_ENCOUNTERS))
     TOTAL_TEST_OBS=$((2*TOTAL_TEST_OBS))
   fi

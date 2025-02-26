@@ -128,6 +128,8 @@ function setup() {
     fi
   fi
 
+  # TODO: the streaming mode is currently not tested as it was removed; we have
+  # kept this logic around since we may add streaming mode in the Beam pipeline.
   if [[ $5 = "--streaming" ]] || [[ $6 = "--streaming" ]] || [[ $7 = "--streaming" ]]; then
     STREAMING="on"
   fi
@@ -201,8 +203,8 @@ function test_parquet_sink() {
   PATIENT_VIEW_ROWCOUNT=106
   OBS_VIEW_ROWCOUNT=${TOTAL_TEST_OBS}
   if [[ -n ${OPENMRS} ]]; then
-    PATIENT_VIEW_ROWCOUNT=110
-    OBS_VIEW_ROWCOUNT=284925
+    PATIENT_VIEW_ROWCOUNT=108
+    OBS_VIEW_ROWCOUNT=284379
   fi
 
 

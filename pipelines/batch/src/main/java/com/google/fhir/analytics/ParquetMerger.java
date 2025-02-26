@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Google LLC
+ * Copyright 2020-2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -342,7 +342,11 @@ public class ParquetMerger {
                         public void processElement(ProcessContext c) {
                           KV<String, CoGbkResult> e = c.element();
                           List<GenericRecord> lastRecords = new ArrayList<>();
-                          e.getValue().getAll(newDwh).forEach(lastRecords::add);
+                          Iterable<GenericRecord> iter = e.getValue().getAll(newDwh);
+                          if (!iter.iterator().hasNext()) {
+                            iter = e.getValue().getAll(oldDwh);
+                          }
+                          iter.forEach(lastRecords::add);
                           for (GenericRecord r : lastRecords) {
                             c.output(r);
                           }
