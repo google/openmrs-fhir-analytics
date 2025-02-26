@@ -100,8 +100,6 @@ steps:
   - -c
   - cd pipelines/batch;
     docker build -t ${_REPOSITORY}/batch-pipeline:${_TAG} .;
-    cd ../streaming-binlog;
-    docker build -t ${_REPOSITORY}/streaming-pipeline:${_TAG} .;
   waitFor: ['Compile Bunsen and Pipeline']
 
 - name: '${_REPOSITORY}/batch-pipeline:${_TAG}'
@@ -281,25 +279,6 @@ steps:
   - e2e-tests/wait_for_start.sh --HAPI_SERVER_URLS=http://sink-server-for-openmrs:8080 --OPENMRS_SERVER_URLS=http://openmrs:8080
   waitFor: ['Launch OpenMRS Server and HAPI FHIR Sink Server for OpenMRS']
 
-- name: '${_REPOSITORY}/e2e-tests:${_TAG}'
-  id: 'Launch Streaming Pipeline'
-  entrypoint: /bin/bash
-  args:
-    - -c
-    - e2e-tests/wait_for_streaming.sh --FHIR_SERVER_URL=http://openmrs:8080 --SINK_SERVER=http://sink-server-for-openmrs:8080
-  waitFor: ['Wait for Servers Start']
-
-- name: '${_REPOSITORY}/e2e-tests:${_TAG}'
-  id: 'Run E2E Test for STREAMING, using OpenMRS Source'
-  env:
-    - PARQUET_SUBDIR=STREAMING
-    - FHIR_JSON_SUBDIR=STREAMING_FHIR_JSON
-    - DOCKER_NETWORK=--use_docker_network
-    - SINK_SERVER=http://sink-server-for-openmrs:8080
-    - STREAMING_TEST=--streaming
-    - OPENMRS_TEST=--openmrs
-  waitFor: ['Launch Streaming Pipeline']
-
 - name: '${_REPOSITORY}/synthea-uploader:${_TAG}'
   id: 'Upload to OpenMRS'
   env:
@@ -307,7 +286,7 @@ steps:
     - INPUT_DIR=/workspace/synthea-hiv/sample_data
     - SINK_TYPE=OpenMRS
     - FHIR_ENDPOINT=http://openmrs:8080/openmrs/ws/fhir2/R4
-  waitFor: ['Run E2E Test for STREAMING, using OpenMRS Source']
+  waitFor: ['Wait for Servers Start']
 
 - name: '${_REPOSITORY}/batch-pipeline:${_TAG}'
   id: 'Run Batch Pipeline FHIR-search mode with OpenMRS source'
@@ -376,7 +355,6 @@ substitutions:
 images: 
   # If run locally, images are available on your local machine through Docker
   # You can then re-tag images and push to your own Docker repo
-  - '${_REPOSITORY}/streaming-pipeline:${_TAG}'
   - '${_REPOSITORY}/batch-pipeline:${_TAG}'
   - '${_REPOSITORY}/e2e-tests:${_TAG}'
   - '${_REPOSITORY}/synthea-uploader:${_TAG}'

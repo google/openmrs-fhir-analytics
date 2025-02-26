@@ -34,7 +34,6 @@
 
   <modules>
     <module>batch</module>
-    <module>streaming</module>
     <module>common</module>
     <module>controller</module>
   </modules>

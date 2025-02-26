@@ -29,8 +29,5 @@ them:
   simple example of how to integrate the Parquet output of Pipelines in a Spark
   cluster environment.
 
-- The legacy [streaming pipeline](streaming) continuously listens for changes to
-  an underlying OpenMRS MySQL database using Debezium.
-
-[See the wiki](https://github.com/google/fhir-data-pipes/wiki) for guides and
-tutorials.
+[See the documentation site](https://google.github.io/fhir-data-pipes/) for
+guides and tutorials.
